@@ -16,3 +16,11 @@ def test_div_byzero():
 
 def test_add_strings():
     assert add('aditya','here')=='adityahere'
+
+@pytest.mark.skip(reason='this is a sample test to skip')
+def test_skip():
+    pass
+
+@pytest.mark.xfail(reason='this is sample test to be get failed')
+def test_fail():
+    pass
