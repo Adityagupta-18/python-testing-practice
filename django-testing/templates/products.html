@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block body %}
+<h1>This is product's Page</h1>
+
+{% for prod in products %}
+    <h2>{{ prod.name}}</h2>
+{% endfor %}
+
+{% endblock body %}
