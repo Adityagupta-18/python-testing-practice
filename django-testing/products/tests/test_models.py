@@ -1,10 +1,17 @@
 from django.test import TestCase
 from products.models import Product
 from django.core.exceptions import ValidationError
+from django.db.utils import IntegrityError
 
 class ProductmodelTest(TestCase):
-    def setUp(self):
-        self.product=Product(name='Testproduct',price=1000.00,stock_count=20)
+
+    # run for every test and then tear down
+    # def setUp(self):
+    #     self.product=Product(name='Testproduct',price=1000.00,stock_count=20)
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.product=Product(name='test_data',price=1000,stock_count=45)
 
     def test_in_stock(self):
         self.assertTrue(self.product.in_stock)
@@ -24,3 +31,13 @@ class ProductmodelTest(TestCase):
         self.product.stock_count=-5
         with self.assertRaises(ValidationError):
             self.product.clean()
+
+    def test_negprice_contraint(self):
+        product=Product(name='negative_price',price=-4215,stock_count=44)
+        with self.assertRaises(IntegrityError):
+            product.save()
+
+    def test_negstock_constraint(self):
+        product=Product(name='neg_stock',price=45645,stock_count=0)
+        with self.assertRaises(IntegrityError):
+            product.save()
