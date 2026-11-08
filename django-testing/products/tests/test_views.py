@@ -2,6 +2,36 @@ from django.test import TestCase, SimpleTestCase
 from products.models import Product, User
 from django.urls import reverse
 
+from unittest.mock import patch
+import requests
+
+
+class APIviewTest(TestCase):
+
+    @patch('products.views.requests.get')
+    def test_api_success(self,mock_data):
+        mock_data.return_value.status_code=200
+        sample_data={
+            'userId':5,
+            "id":2,
+            "title":'this is the title',
+            "body":'This is the sample body'
+        }
+        mock_data.return_value.json.return_value=sample_data
+        response=self.client.get(reverse('api_data'))
+        self.assertEqual(response.status_code,200)
+        self.assertJSONEqual(response.content,sample_data)
+
+        mock_data.asser_called_only_once('https://jsonplaceholder.typicode.com/posts/1')
+
+    @patch('products.views.requests.get')
+    def test_api_fail(self,mock_data):
+        mock_data.side_effect=requests.exceptions.RequestException
+        response=self.client.get(reverse('api_data'))
+        self.assertEqual(response.status_code,503)
+        mock_data.asser_called_only_once('https://jsonplaceholder.typicode.com/posts/1')
+
+
 
 class TestAuth(TestCase):
 
