@@ -1,4 +1,4 @@
-from django.test import TestCase, SimpleTestCase
+from django.test import TestCase, SimpleTestCase, tag
 from products.models import Product, User
 from django.urls import reverse
 
@@ -8,6 +8,7 @@ import requests
 
 class APIviewTest(TestCase):
 
+    @tag('api')
     @patch('products.views.requests.get')
     def test_api_success(self,mock_data):
         mock_data.return_value.status_code=200
@@ -24,6 +25,7 @@ class APIviewTest(TestCase):
 
         mock_data.asser_called_only_once('https://jsonplaceholder.typicode.com/posts/1')
 
+    @tag('api')
     @patch('products.views.requests.get')
     def test_api_fail(self,mock_data):
         mock_data.side_effect=requests.exceptions.RequestException
