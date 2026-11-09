@@ -2,6 +2,7 @@ from rest_framework.test import APITestCase
 from products.models import Product
 from django.urls import reverse
 from rest_framework import status
+from decimal import Decimal
 
 class TestProductAPI(APITestCase):
 
@@ -41,3 +42,27 @@ class TestProductAPI(APITestCase):
         self.assertEqual(response.status_code,status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Product.objects.count(),0)
         self.assertIn('price', response.data)
+
+
+    def test_put_product(self):
+        product=Product.objects.create(name='random',price=111,stock_count=80)
+        url=reverse('product-detail',args=[product.pk])
+        payload={
+            'name':'playstation',
+            'price':5500,
+            'stock_count':20,
+        }
+        response=self.client.put(url,payload,format='json')
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+        self.assertEqual(Product.objects.get().name,'playstation')
+        self.assertEqual(Product.objects.get().price,Decimal('5500.00'))
+
+
+    def test_patch_product(self):
+        product=Product.objects.create(name='random',price=111,stock_count=80)
+        updated_data={'name':'PC'}
+        response=self.client.patch(reverse('product-detail',args=[product.pk]),updated_data,format='json')
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+        self.assertEqual(Product.objects.get(pk=product.pk).name,'PC')
+        self.assertEqual(Product.objects.get(pk=product.pk).price,Decimal('111.00'))
+        
