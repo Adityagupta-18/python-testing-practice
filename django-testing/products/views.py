@@ -8,9 +8,10 @@ from django.http import JsonResponse, HttpResponse
 
 from products.serializers import ProductSerializer
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
 from django.shortcuts import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
 
 # Create your views here.
 
@@ -55,6 +56,7 @@ def products(request):
 
 
 @api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
 def products(request):
 
     if request.method=='GET':
@@ -74,7 +76,8 @@ def products(request):
 
 
 
-@api_view(['GET', 'PUT', 'PATCH'])
+@api_view(['GET', 'PUT', 'PATCH','DELETE'])
+@permission_classes([IsAuthenticated])
 def product_detail(request, pk):
     product = get_object_or_404(Product, pk=pk)
 
@@ -91,6 +94,10 @@ def product_detail(request, pk):
             data=request.data,
             partial=True
         )
+
+    elif request.method=='DELETE':
+        product.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     if serializer.is_valid():
         serializer.save()

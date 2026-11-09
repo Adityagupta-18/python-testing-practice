@@ -65,4 +65,32 @@ class TestProductAPI(APITestCase):
         self.assertEqual(response.status_code,status.HTTP_200_OK)
         self.assertEqual(Product.objects.get(pk=product.pk).name,'PC')
         self.assertEqual(Product.objects.get(pk=product.pk).price,Decimal('111.00'))
-        
+
+
+    def test_delete_product(self):
+        product=Product.objects.create(name='random',price=111,stock_count=80)
+        response=self.client.delete(reverse('product-detail',args=[product.pk]))
+        self.assertEqual(response.status_code,status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Product.objects.count(),0)
+
+
+    def test_anonymous_user_cannot_get_products(self):
+        response = self.client.get(reverse('products-api'))
+        self.assertIn(response.status_code, [401, 403])
+
+
+    def test_anonymous_user_cannot_create_product(self):
+        payload = {
+            'name': 'Monitor',
+            'price': '500.00',
+            'stock_count': 10
+        }
+
+        response = self.client.post(
+            reverse('products-api'),
+            payload,
+            format='json'
+        )
+
+        self.assertIn(response.status_code, [401, 403])
+        self.assertEqual(Product.objects.count(), 0)
