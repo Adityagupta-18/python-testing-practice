@@ -19,7 +19,7 @@ class Product(models.Model):
                 condition=models.Q(price__gt=0),name='price_greater_than_0'
             ),
             models.CheckConstraint(
-                condition=models.Q(stock_count__gt=0),name='stock_greater_than_0'
+                condition=models.Q(stock_count__gte=0),name='stock_greater_than_0'
             )
         ]
 
