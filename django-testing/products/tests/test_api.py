@@ -3,8 +3,17 @@ from products.models import Product
 from django.urls import reverse
 from rest_framework import status
 from decimal import Decimal
+from django.contrib.auth import get_user_model
 
 class TestProductAPI(APITestCase):
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_superuser(
+            username='testuser',
+            password='testpass123'
+        )
+
+        self.client.force_authenticate(user=self.user)
 
     def test_get_products(self):
         Product.objects.create(name='Mouse',price=321.11,stock_count=66)
@@ -75,11 +84,13 @@ class TestProductAPI(APITestCase):
 
 
     def test_anonymous_user_cannot_get_products(self):
+        self.client.force_authenticate(user=None)
         response = self.client.get(reverse('products-api'))
         self.assertIn(response.status_code, [401, 403])
 
 
     def test_anonymous_user_cannot_create_product(self):
+        self.client.force_authenticate(user=None)
         payload = {
             'name': 'Monitor',
             'price': '500.00',
@@ -94,3 +105,24 @@ class TestProductAPI(APITestCase):
 
         self.assertIn(response.status_code, [401, 403])
         self.assertEqual(Product.objects.count(), 0)
+
+
+    def test_authenticated_user_can_get_products(self):
+        Product.objects.create(
+            name='Mouse',
+            price=500,
+            stock_count=10
+        )
+
+        response = self.client.get(reverse('products-api'))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+
+    def test_non_admin_cant_get(self):
+        self.user.is_staff=False
+        self.user.is_superuser=False
+        self.user.save()
+        response=self.client.get(reverse('products-api'))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
