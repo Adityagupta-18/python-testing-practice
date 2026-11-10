@@ -16,8 +16,8 @@ class TestProductAPI(APITestCase):
         self.client.force_authenticate(user=self.user)
 
     def test_get_products(self):
-        Product.objects.create(name='Mouse',price=321.11,stock_count=66)
-        Product.objects.create(name='keyboard',price=811,stock_count=8)
+        Product.objects.create(name='Mouse',price=321.11,stock_count=66,owner=self.user)
+        Product.objects.create(name='keyboard',price=811,stock_count=8,owner=self.user)
 
         response=self.client.get(reverse('products-api'))
         self.assertEqual(response.status_code,200)
@@ -35,7 +35,7 @@ class TestProductAPI(APITestCase):
         }
         response=self.client.post(reverse('products-api'),payload,format='json')
         self.assertEqual(response.status_code,status.HTTP_201_CREATED)
-        self.assertEqual(len(response.data),5)
+        self.assertEqual(len(response.data),6)
         self.assertEqual(response.data['name'], 'monitor')
         self.assertEqual(response.data['price'], '500.00')
         self.assertEqual(response.data['stock_count'], 2)
@@ -54,7 +54,7 @@ class TestProductAPI(APITestCase):
 
 
     def test_put_product(self):
-        product=Product.objects.create(name='random',price=111,stock_count=80)
+        product=Product.objects.create(name='random',price=111,stock_count=80,owner=self.user)
         url=reverse('product-detail',args=[product.pk])
         payload={
             'name':'playstation',
@@ -68,7 +68,7 @@ class TestProductAPI(APITestCase):
 
 
     def test_patch_product(self):
-        product=Product.objects.create(name='random',price=111,stock_count=80)
+        product=Product.objects.create(name='random',price=111,stock_count=80,owner=self.user)
         updated_data={'name':'PC'}
         response=self.client.patch(reverse('product-detail',args=[product.pk]),updated_data,format='json')
         self.assertEqual(response.status_code,status.HTTP_200_OK)
@@ -77,7 +77,7 @@ class TestProductAPI(APITestCase):
 
 
     def test_delete_product(self):
-        product=Product.objects.create(name='random',price=111,stock_count=80)
+        product=Product.objects.create(name='random',price=111,stock_count=80,owner=self.user)
         response=self.client.delete(reverse('product-detail',args=[product.pk]))
         self.assertEqual(response.status_code,status.HTTP_204_NO_CONTENT)
         self.assertEqual(Product.objects.count(),0)
@@ -126,3 +126,56 @@ class TestProductAPI(APITestCase):
         self.user.save()
         response=self.client.get(reverse('products-api'))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+    def test_superuser_post_request(self):
+        payload={
+            'name':'testproduct',
+            "price":452.33,
+            "stock_count":44,
+        }
+        response=self.client.post(reverse('products-api'),payload,format='json')
+        self.assertEqual(response.status_code,status.HTTP_201_CREATED)
+        self.assertEqual(Product.objects.get().name,'testproduct')
+        self.assertEqual(Product.objects.get().price,Decimal('452.33'))
+        self.assertEqual(Product.objects.get().owner.username,"testuser")
+
+
+
+    def test_other_user_cannot_update_product(self):
+        product=Product.objects.create(name='testingofproduct',price=4554,stock_count=42,owner=self.user)
+
+        temp_user=get_user_model().objects.create_user(username='vips',password='pass789')
+        self.client.force_authenticate(user=temp_user)
+        update_data={'name':'testingggggggg'}
+        url=reverse('product-detail',args=[product.pk])
+        response=self.client.patch(url,update_data,format='json')
+
+        self.assertEqual(response.status_code,status.HTTP_403_FORBIDDEN)
+        prod=Product.objects.get(pk=product.pk)
+        self.assertEqual(product.name,'testingofproduct')
+
+
+    def test_other_user_cannot_delete_product(self):
+        product=Product.objects.create(name='testingofproduct',price=4554,stock_count=42,owner=self.user)
+
+        temp_user=get_user_model().objects.create_user(username='vips',password='pass789')
+        self.client.force_authenticate(user=temp_user)
+        url=reverse('product-detail',args=[product.pk])
+        response=self.client.delete(url)
+
+        self.assertEqual(response.status_code,status.HTTP_403_FORBIDDEN)
+        prod=Product.objects.get(pk=product.pk)
+        self.assertEqual(prod.name,'testingofproduct')
+
+
+    def test_owner_can_modify_their_own_product(self):
+        product=Product.objects.create(name='testingofproduct',price=4554,stock_count=42,owner=self.user)
+        update_data={'name':'testingggggggg'}
+        url=reverse('product-detail',args=[product.pk])
+        response=self.client.patch(url,update_data,format='json')
+
+        self.assertEqual(response.status_code,status.HTTP_200_OK)
+        prod=Product.objects.get(pk=product.pk)
+        self.assertEqual(prod.name,'testingggggggg')
+        

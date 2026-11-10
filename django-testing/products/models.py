@@ -3,6 +3,7 @@ from xml.dom import ValidationErr
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
+from django.conf import settings
 # Create your models here.
 
 class User(AbstractUser):
@@ -12,6 +13,7 @@ class Product(models.Model):
     name=models.CharField(max_length=100)
     price=models.DecimalField(max_digits=6,decimal_places=2)
     stock_count=models.IntegerField(default=0)
+    owner=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,null=True,blank=True)
 
     class Meta:
         constraints=[

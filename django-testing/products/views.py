@@ -8,12 +8,20 @@ from django.http import JsonResponse, HttpResponse
 
 from products.serializers import ProductSerializer
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
 from django.shortcuts import get_object_or_404
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, BasePermission, SAFE_METHODS
 
-# Create your views here.
+
+
+class IsOwnerOrReadOnly(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.method in SAFE_METHODS:
+            return True
+        return obj.owner==request.user
+
 
 def api_data(request):
     try:
@@ -56,7 +64,7 @@ def products(request):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAdminUser])
+@permission_classes([IsAuthenticated,BasePermission])
 def products(request):
 
     if request.method=='GET':
@@ -67,7 +75,7 @@ def products(request):
     elif request.method=='POST':
         serializer=ProductSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(owner=request.user)
             return Response(serializer.data,status=status.HTTP_201_CREATED)
 
 
@@ -77,10 +85,14 @@ def products(request):
 
 
 @api_view(['GET', 'PUT', 'PATCH','DELETE'])
-@permission_classes([IsAdminUser])
+@permission_classes([IsAuthenticated,IsOwnerOrReadOnly])
 def product_detail(request, pk):
     product = get_object_or_404(Product, pk=pk)
-
+    request.parser_context['view'].check_object_permissions(
+        request,
+        product
+        )
+    
     if request.method == 'GET':
         serializer = ProductSerializer(product)
         return Response(serializer.data)
@@ -104,3 +116,4 @@ def product_detail(request, pk):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
